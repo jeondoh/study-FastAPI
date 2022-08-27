@@ -1,42 +1,31 @@
-from typing import Optional, List
+from tempfile import NamedTemporaryFile
+from typing import IO
 
-import uvicorn
-from fastapi import FastAPI
-from pydantic import BaseModel, HttpUrl, EmailStr
+from fastapi import FastAPI, File, UploadFile
 
 app = FastAPI()
 
 
-class Item(BaseModel):
-    name: str
-    price: float
-    amount: int = 0
+async def save_file(file: IO):
+    with NamedTemporaryFile("wb", delete=False) as tempfile:
+        tempfile.write(file.read())
+        return tempfile.name
 
 
-class User(BaseModel):
-    name: str
-    password: str
-    avatar_url: Optional[HttpUrl] = None
-    inventory: List[Item] = []
+@app.post("/file/size")
+async def get_filesize(file: bytes = File(...)):
+    return {"file_size": len(file)}
 
 
-@app.post("/users")
-def create_user(user: User):
-    return user
+@app.post("/file/info")
+async def get_file_info(file: UploadFile = File(...)):
+    return {
+        "content_type": file.content_type,
+        "filename": file.filename
+    }
 
 
-@app.get("/users/me")
-def get_user():
-    fake_user = User(
-        name="FastCampus",
-        password="1234",
-        inventory=[
-            Item(name="전설 무기", price=1_000_000),
-            Item(name="전설 방어구", price=900_000),
-        ],
-    )
-    return fake_user
-
-
-if __name__ == "__main__":
-    uvicorn.run("main:app", reload=True)
+@app.post("/file/store")
+async def store_file(file: UploadFile = File(...)):
+    path = await save_file(file.file)
+    return {"filepath": path}
