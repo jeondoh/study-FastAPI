@@ -23,4 +23,4 @@ archive.zip
 # vim temporary files
 *~
 .*.sw?
-async-python/scraping/secrets.json
+secrets.json
